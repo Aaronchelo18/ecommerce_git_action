@@ -1,4 +1,4 @@
-# .github/workflows/deploy.yml
+# .github/workflows/main.yml
 # 🚀 Pipeline de CI/CD para despliegue local con un Self-Hosted Runner
 
 name: Deploy Locally with Self-Hosted Runner
@@ -8,7 +8,7 @@ on:
     branches: [ "main" ]
   workflow_dispatch: # Permite ejecutar el pipeline manualmente
 
-# Variables de entorno para que docker-compose las use
+# Variables de entorno para que docker compose las use
 env:
   DOCKER_PROJECT_NAME: 'ecomapp'
   APP_CONTAINER_NAME: 'product_app'
@@ -21,7 +21,7 @@ jobs:
   build-and-deploy:
     name: Build and Deploy Locally
     
-    # 🎯 ¡Paso Clave! Usa el runner que acabas de configurar.
+    # 🎯 ¡Paso Clave! Usa el runner que tienes configurado en tu máquina.
     runs-on: self-hosted
 
     steps:
@@ -41,25 +41,31 @@ jobs:
       - name: Build with Maven
         run: mvn -B clean package -DskipTests
 
-        # 4. Desplegar la aplicación usando Docker Compose
+      # 4. Desplegar la aplicación usando Docker Compose
+      # Estos comandos se ejecutan directamente en tu terminal de WSL
       - name: Deploy with Docker Compose
         run: |
           echo "✅ Iniciando despliegue en el runner local..."
           
+          # Navegamos a la carpeta que contiene el docker-compose.yml
           cd docker
           
-          echo "🧹 Limpiando despliegue anterior..."
-          docker-compose -p ${{ env.DOCKER_PROJECT_NAME }} down -v --remove-orphans || echo "⚠️ No se encontró un despliegue anterior."
+          # 1️⃣ Limpiamos cualquier despliegue anterior usando el comando moderno
+          echo "🧹 Limpiando despliegue anterior (si existe)..."
+          docker compose -p ${{ env.DOCKER_PROJECT_NAME }} down -v --remove-orphans || echo "⚠️ No se encontró un despliegue anterior para limpiar."
 
+          # 2️⃣ Construimos la nueva imagen y levantamos los servicios
+          # Docker se encargará de ejecutar init.sql automáticamente gracias al volumen montado
           echo "🏗️ Construyendo y levantando los servicios..."
-          # Docker se encargará de ejecutar init.sql automáticamente gracias al volumen.
-          docker-compose -p ${{ env.DOCKER_PROJECT_NAME }} up -d --build
+          docker compose -p ${{ env.DOCKER_PROJECT_NAME }} up -d --build
 
-          echo "⏳ Esperando unos segundos para que la app inicie..."
-          sleep 15
+          # 3️⃣ Esperamos un poco para que la aplicación Spring Boot inicie
+          echo "⏳ Esperando 20 segundos para que la aplicación se estabilice..."
+          sleep 20
           
+          # 4️⃣ Verificamos el estado final de los contenedores
           echo "🔍 Verificando estado de los contenedores..."
-          docker-compose -p ${{ env.DOCKER_PROJECT_NAME }} ps
+          docker compose -p ${{ env.DOCKER_PROJECT_NAME }} ps
           
           echo "🗒️ Mostrando los últimos logs de la aplicación:"
           docker logs --tail 100 ${{ env.APP_CONTAINER_NAME }}
