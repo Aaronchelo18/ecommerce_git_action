@@ -1,4 +1,4 @@
-# .github/workflows/deploy.yml
+# .github/workflows/deploy.yml - codigo del profe jhan
 # 🚀 Pipeline de CI/CD para despliegue local con un Self-Hosted Runner
 
 name: Deploy Locally with Self-Hosted Runner
