@@ -7,5 +7,9 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: none
+      ddl-auto: create-drop # crea las tablas al inicio del test y las borra al final
     show-sql: false
+
+logging:
+  level:
+    root: INFO
