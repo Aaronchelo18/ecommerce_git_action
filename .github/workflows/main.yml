@@ -28,30 +28,28 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build with Maven
-        run: mvn -B clean package -DskipTests
-
-      - name: SonarQube Scan
-        uses: sonarsource/sonarcloud-github-action@v2
-        with:
-          projectBaseDir: .
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: "http://docker.sonar:9000"
+      - name: Build and analyze with SonarQube
+        run: mvn -B clean verify sonar:sonar -Dsonar.login=${{ secrets.SONAR_TOKEN }} -Dsonar.host.url=http://docker.sonar:9000
 
       - name: Deploy with Docker Compose
         run: |
           echo "✅ Iniciando despliegue en el runner local..."
           cd docker
+
           echo "🧹 Limpiando despliegue anterior (si existe)..."
           docker-compose -p ${{ env.DOCKER_PROJECT_NAME }} down -v --remove-orphans || echo "⚠️ No se encontró un despliegue anterior."
+
           echo "🏗️ Construyendo y levantando los servicios..."
           docker-compose -p ${{ env.DOCKER_PROJECT_NAME }} up -d --build
+
           echo "⏳ Esperando 30 segundos para que la DB se estabilice..."
           sleep 30
+
           echo "💾 Inicializando base de datos desde init.sql..."
           docker exec -i ${{ env.DB_CONTAINER_NAME }} mysql -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} ${{ env.DB_NAME }} < ../sql/init.sql
+
           echo "🔍 Verificando estado de los contenedores..."
           docker-compose -p ${{ env.DOCKER_PROJECT_NAME }} ps
+
           echo "🗒️ Mostrando logs recientes:"
           docker logs --tail 100 ${{ env.APP_CONTAINER_NAME }}
